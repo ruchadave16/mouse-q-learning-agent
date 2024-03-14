@@ -25,6 +25,10 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
     // A variable to keep track of the agent's current state in terms of position and state of that location
     private var agentState = WorldState(0, 0, world[0][0])
 
+    // Create initial policies based on qLearning and iterative
+    private var qLearningPolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
+    private var iterativePolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
+
     /**
      * Set the state of the particular position in the world to the specified type. Used to create the world.
      *
@@ -172,7 +176,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
     /**
      * Update qTable given an action to take and perform that action by updating agentState
      *
-     * @param action: A string representing the action to look update the qTable for
+     * @param action: A string representing the action to update the qTable for
      */
     fun qFunction(action: String) {
         println("Start state: ${agentState.row}, ${agentState.col}")
@@ -187,6 +191,8 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
 
     /**
      * Identify valid action associated with maximum qValue of a given state
+     *
+     * @return A string representing the action associated with the maximum qValue
      */
     fun qMaxAction(): String {
         val qList = mutableListOf<Int>()
@@ -242,61 +248,123 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
 
     /**
      * Calculate policy for QLearning
-     *
-     * @return A table with probabilities of picking each action at each state based on the qLearning values
      */
     fun qLearningPolicy() {
-        val thisPolicy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
+//        val thisPolicy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
+        val thisPolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
         for (state in thisPolicy) {
-            val thisSum = sum(qTable[state])
-            thisPolicy[state][0] = qTable[state][0] / thisSum
-            thisPolicy[state][1] = qTable[state][1] / thisSum
-            thisPolicy[state][2] = qTable[state][2] / thisSum
-            thisPolicy[state][3] = qTable[state][3] / thisSum
+            val maxQValue = max(qTable[state])
+            when (maxQValue) {
+                qTable[state][0] -> thisPolicy[state] = "U"
+                qTable[state][1] -> thisPolicy[state] = "D"
+                qTable[state][2] -> thisPolicy[state] = "L"
+                qTable[state][3] -> thisPolicy[state] = "R"
+            }
+//            val thisSum = sum(qTable[state])
+//            thisPolicy[state][0] = qTable[state][0] / thisSum
+//            thisPolicy[state][1] = qTable[state][1] / thisSum
+//            thisPolicy[state][2] = qTable[state][2] / thisSum
+//            thisPolicy[state][3] = qTable[state][3] / thisSum
         }
-        return thisPolicy
+        qLearningPolicy = thisPolicy
     }
 
     /**
      *
      */
-    fun policyValueTable(policy: MutableList<String>) {
-        // Initialize value table for each position to 0
+    fun policyValueFunction(policy: MutableList) {
         var valueTable: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
 
-        // Update each value in table based on policy
-        for (row in valueTable) {
-            val value = 0
-            for (action in row) {
-                value = value + (policy[row] * (currReward + gamma * valueTable[]))
-                )) // Get recommended policy for the state
-                valueTable[state] = // Implement
+        val threshold = 1e-10
+
+        while (true) {
+            val changedValue = false
+            for (state in 0..<worldDim*worldDim) {
+                val value = 0
+
+                val row = state.floorDiv(worldDim)
+                val col = state.mod(worldDim)
+                val worldState = WorldState(row, col, world[row][col])
+
+                for (action in List("U", "D", "L", "R")) {
+                    if (!isInvalidAction(worldState, action)) {
+                        val currReward = computeReward(worldState, action)
+                        val newRow = row
+                        val newCol = col
+                        when (action) {
+                            "U" -> newRow--
+                            "D" -> newRow++
+                            "L"-> newCol--
+                            "R" -> newCol++
+                        }
+                        val newIdx = row*worldDim + col
+                        value = value + (alpha * (currReward + gamma * valueTable[newIdx]))
+                        changedValue = true
+                    }
+                }
+                valueTable[state] = value
+            }
+            if (changedValue == false) {
+                break
             }
         }
+        return valueTable
     }
 
-    fun policyExtract() {
-        // Start with policy to randomly go to any position
-        var policy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0.25 } }
+    /**
+     *
+     */
+    fun getIterativePolicy(valueTable) {
+        val policy = MutableList(worldDim*worldDim) { "U" }
+        for (state in 0..<worldDim*worldDim) {
+            val maxAction = "U" // Defaults to up
+            val maxValue = 0
 
-        for (state in policy) {
+            val row = state.floorDiv(worldDim)
+            val col = state.mod(worldDim)
+            val worldState = WorldState(row, col, world[row][col])
 
+            for (action in List("U", "D", "L", "R")) {
+                if (!isInvalidAction(worldState, action)) {
+                    val currReward = computeReward(worldState, action)
+                    val newRow = row
+                    val newCol = col
+                    when (action) {
+                        "U" -> newRow--
+                        "D" -> newRow++
+                        "L" -> newCol--
+                        "R" -> newCol++
+                    }
+                    val newIdx = row * worldDim + col
+                    val thisValue = alpha * (currReward + gamma * valueTable[newIdx])
+
+                    if (thisValue > maxValue) {
+                        maxValue = thisValue
+                        maxAction = action
+                    }
+                }
+            }
+            policy[state] = maxAction
         }
+        return policy
     }
 
-    /**
-     *
-     */
-    fun policyEvaluation() {
-        // Initial police: right always
+    fun policyIterate() {
+        val originalPolicy = MutableList(worldDim*worldDim) { "U" }
+        val iterations = 50
 
+        for (i in 0..<50) {
+            val thisValueFunction = policyValueFunction(originalPolicy)
+            val thisPolicy = getIterativePolicy(thisValueFunction)
+
+            if (thisPolicy == originalPolicy) {
+                println("Found convergance at step ${i+1}")
+                break
+            }
+            originalPolicy = thisPolicy
+        }
+        iterativePolicy = originalPolicy
     }
-
-    // For policy iteration
-    /**
-     *
-     */
-    fun qFunctionPolicyIteration(action: String) {}
 }
 
 fun main() {
