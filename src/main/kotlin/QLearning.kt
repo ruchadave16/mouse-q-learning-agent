@@ -6,7 +6,7 @@ import kotlin.random.Random
  *
  */
 class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, defaultState: String, private var alpha: Int) {
-    // QTable representing QValues: Each row is a location an0d containes values for each action (U, D, L, R). Initialized to defaulValue
+    // QTable representing QValues: Each row is a location and containes values for each action (U, D, L, R). Initialized to defaulValue
     private val qTable: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { defaultValue } }
 
     // List of actions the mouse can make at any point (move up, down, left, right)
@@ -205,12 +205,6 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         return maxAction
     }
 
-    // For policy iteration
-    /**
-     *
-     */
-    fun qFunctionPolicyIteration(state: String, action: String) {}
-
     /**
      *
      */
@@ -245,6 +239,64 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
             qFunction(action)
         }
     }
+
+    /**
+     * Calculate policy for QLearning
+     *
+     * @return A table with probabilities of picking each action at each state based on the qLearning values
+     */
+    fun qLearningPolicy() {
+        val thisPolicy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
+        for (state in thisPolicy) {
+            val thisSum = sum(qTable[state])
+            thisPolicy[state][0] = qTable[state][0] / thisSum
+            thisPolicy[state][1] = qTable[state][1] / thisSum
+            thisPolicy[state][2] = qTable[state][2] / thisSum
+            thisPolicy[state][3] = qTable[state][3] / thisSum
+        }
+        return thisPolicy
+    }
+
+    /**
+     *
+     */
+    fun policyValueTable(policy: MutableList<String>) {
+        // Initialize value table for each position to 0
+        var valueTable: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
+
+        // Update each value in table based on policy
+        for (row in valueTable) {
+            val value = 0
+            for (action in row) {
+                value = value + (policy[row] * (currReward + gamma * valueTable[]))
+                )) // Get recommended policy for the state
+                valueTable[state] = // Implement
+            }
+        }
+    }
+
+    fun policyExtract() {
+        // Start with policy to randomly go to any position
+        var policy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0.25 } }
+
+        for (state in policy) {
+
+        }
+    }
+
+    /**
+     *
+     */
+    fun policyEvaluation() {
+        // Initial police: right always
+
+    }
+
+    // For policy iteration
+    /**
+     *
+     */
+    fun qFunctionPolicyIteration(action: String) {}
 }
 
 fun main() {
