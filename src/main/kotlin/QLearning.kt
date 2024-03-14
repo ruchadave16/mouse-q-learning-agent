@@ -217,7 +217,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         // Then, update the policy (implicitly stored in the q function) for n steps using
         // an e-greedy approach (probability e that the action is random versus from the q table
         for (step in 0 until nSteps) {
-            var num = Random.nextInt(0, 100)
+            var num = Random.nextInt(min, max)
             yetToBeValid = true
             if (num < epsilon) {
                 while (yetToBeValid) {
@@ -397,10 +397,6 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
             print("${iterativePolicy[idx]}   ")
         }
     }
-
-
-
-
 }
 
 fun main() {
