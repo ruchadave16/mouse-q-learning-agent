@@ -1,10 +1,7 @@
 package org.example
-
+import kotlin.math.abs
 import kotlin.random.Random
 
-/**
- *
- */
 class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, defaultState: String, private var alpha: Int) {
     // QTable representing QValues: Each row is a location and containes values for each action (U, D, L, R). Initialized to defaulValue
     private val qTable: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { defaultValue } }
@@ -26,7 +23,6 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
     private var agentState = WorldState(0, 0, world[0][0])
 
     // Create initial policies based on qLearning and iterative
-    private var qLearningPolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
     private var iterativePolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
 
     /**
@@ -52,26 +48,21 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      * P2 (0,1) | 10     0      3      0
      * P3 (1,0) | 3      1      0      2
      */
-    fun getQTable(){
-        for (row in qTable) {
-            for (value in row) {
-                print("$value ")
+    fun getQTable() {
+        print("State \t")
+        for (action in actions) {
+            print("$action \t")
+        }
+        println()
+        for (i in qTable.indices) {
+            val row = i / worldDim
+            val col = i % worldDim
+            print("($row, $col)\t")
+
+            for (value in qTable[i]) {
+                print("$value \t")
             }
             println()
-        }
-    }
-
-    fun printIterativePolicy() {
-        var prevRow = 0
-        for (idx in 0..worldDim*worldDim - 1) {
-            val row = idx / worldDim
-            val col = idx % worldDim
-
-            if (row != prevRow) {
-                println()
-                prevRow = row
-            }
-            print("${iterativePolicy[idx]}")
         }
     }
 
@@ -94,12 +85,11 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      * @param action: A string representing the action the mouse is taking
      * @param qValue: An Int representing the qValue associated with that action
      */
-    fun updateQTable(state_: WorldState, action: String, qValue: Int) {
-        val state = agentState
+    fun updateQTable(state: WorldState, action: String, qValue: Int) {
         val row = (state.row*worldDim + state.col)
         var col = 0
         when (action) {
-//            "U" -> col = 0
+            "U" -> col = 0
             "D" -> col = 1
             "L" -> col = 2
             "R" -> col = 3
@@ -115,8 +105,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      *
      * @return An Int representing the qValue associated with the action taken
      */
-    fun qLookup(state_: WorldState, action: String): Int {
-        val state = agentState
+    fun qLookup(state: WorldState, action: String): Int {
         var col: Int = 0
         when (action) {
             "D" -> col = 1
@@ -138,8 +127,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      *
      * @return Int representing the reward at the new position after given action is taken
      */
-    fun computeReward(state_: WorldState, action: String): Int {
-        val state = agentState
+    fun computeReward(state: WorldState, action: String): Int {
         val stateCopy = WorldState(state.row, state.col, state.type)
         when (action) {
             "U" -> stateCopy.row--
@@ -147,45 +135,10 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
             "L" -> stateCopy.col--
             "R" -> stateCopy.col++
         }
-        val nextStateType: String = world[stateCopy.row][stateCopy.col]
+        val nextStateType: String = world[state.row][state.col]
         return rewards[nextStateType]!!
     }
 
-    /**
-     * Check if the action being performed is invalid (leads to a position off the grid)
-     *
-     * @param state: A WorldState representing the mouse's current position
-     * @param action: A string representing the action to look up the reward for
-     *
-     * @return A boolean representing whether the position of the agent after the action is taken is valid or not
-     */
-    fun isInvalidAction(state_: WorldState, action: String): Boolean {
-        val state = agentState
-        val stateCopy = WorldState(state.row, state.col, state.type)
-        when (action) {
-            "U" -> stateCopy.row--
-            "D" -> stateCopy.row++
-            "L" -> stateCopy.col--
-            "R" -> stateCopy.col++
-        }
-
-        return (stateCopy.row >= worldDim || stateCopy.row < 0 || stateCopy.col >= worldDim || stateCopy.col < 0)
-    }
-
-    /**
-     * Find the maximum qValue out of any valid action the mouse can take
-     *
-     * @return Int representing the qValue of the best valid action the mouse can take
-     */
-    fun qMax(): Int {
-        val qList = mutableListOf<Int>()
-        for (action in actions) {
-            if (!isInvalidAction(agentState, action)) {
-                qList.add(qLookup(agentState, action))
-            }
-        }
-        return qList.max()!!
-    }
 
     /**
      * Update qTable given an action to take and perform that action by updating agentState
@@ -194,13 +147,26 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      */
     fun qFunction(action: String) {
         println("Start state: ${agentState.row}, ${agentState.col}")
+        val originalState = agentState.copy()
         val currentQ = qLookup(agentState, action)
-        val qMaximum = qMax()
-        val currReward = computeReward(agentState, action)
         println("Moving agent $action from ${agentState.row}, ${agentState.col}")
         updateAgentState(action)
+        val currReward = computeReward(agentState, action)
+        val qMaximum = qMax()
+        println("Now agent is in ${agentState.row}, ${agentState.col}")
         val newQ = currentQ + alpha * (currReward + gamma * qMaximum - currentQ)
-        updateQTable(agentState, action, newQ.toInt())
+        println("Value at curr state: $newQ")
+        updateQTable(originalState, action, newQ.toInt())
+    }
+
+    fun qMax(): Int {
+        val qList = mutableListOf<Int>()
+        for (action in actions) {
+            if (!isInvalidAction(agentState, action)) {
+                qList.add(qLookup(agentState, action))
+            }
+        }
+        return qList.max()
     }
 
     /**
@@ -209,7 +175,6 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      * @return A string representing the action associated with the maximum qValue
      */
     fun qMaxAction(): String {
-        val qList = mutableListOf<Int>()
         var maxAction = "NULL"
         var maxQVal = -10000
         var qVal = -10000
@@ -225,76 +190,112 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         return maxAction
     }
 
-    /**
-     *
-     */
+    fun isInvalidAction(state: WorldState, action: String): Boolean {
+        val stateCopy = WorldState(state.row, state.col, state.type)
+        when (action) {
+            "U" -> stateCopy.row--
+            "D" -> stateCopy.row++
+            "L" -> stateCopy.col--
+            "R" -> stateCopy.col++
+        }
+
+        return (stateCopy.row > 3 || stateCopy.row < 0 || stateCopy.col > 3 || stateCopy.col < 0)
+    }
+
     fun trainQPolicy(nSteps: Int, epsilon: Int) {
         val min = 0
         val max = 100
-
-        // Chose an initial valid action at random
+        // Chose an initial action at random
         var action = actions.random()
-        var yetToBeValid = isInvalidAction(agentState, action)
+        var yetToBeValid = true
         while (yetToBeValid) {
             action = actions.random()
             yetToBeValid = isInvalidAction(agentState, action)
         }
-
         // Update the q value based on the first action
         qFunction(action)
-
         // Then, update the policy (implicitly stored in the q function) for n steps using
         // an e-greedy approach (probability e that the action is random versus from the q table
         for (step in 0 until nSteps) {
-            var num = Random.nextInt(min, max)
+            var num = Random.nextInt(0, 100)
             yetToBeValid = true
             if (num < epsilon) {
                 while (yetToBeValid) {
                     action = actions.random()
                     yetToBeValid = isInvalidAction(agentState, action)
                 }
+                qFunction(action)
             } else {
                 action = qMaxAction()
+                qFunction(action)
             }
-            qFunction(action)
+        }
+
+    }
+
+    fun printWorld() {
+        println("World: ")
+        val emojiMap = mapOf(
+            "Cheese" to "🧀",
+            "Cookie" to "🍪",
+            "Salad" to "🥗",
+            "No food" to "⬜"
+        )
+        for (row in 0 until worldDim) {
+            print("$row | ")
+            for (col in 0 until worldDim) {
+                val item = world[row][col]
+                print("${emojiMap[item] ?: item}   ")
+            }
+            println()
         }
     }
 
-    /**
-     * Calculate policy for QLearning
-     */
-    fun qLearningPolicy() {
-//        val thisPolicy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
-        val thisPolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
-        for (state in 0..worldDim*worldDim - 1) {
-            val maxQValue: Int = qTable[state].max()!!
-            when (maxQValue) {
-                qTable[state][0] -> thisPolicy[state] = "U"
-                qTable[state][1] -> thisPolicy[state] = "D"
-                qTable[state][2] -> thisPolicy[state] = "L"
-                qTable[state][3] -> thisPolicy[state] = "R"
+    fun extractPolicy(): MutableList<MutableList<String>> {
+        val policy = MutableList(worldDim) { MutableList(worldDim) { "U" } }
+        for (row in 0 until worldDim) {
+            for (col in 0 until worldDim) {
+                val state = WorldState(row, col, world[row][col])
+                var bestAction = "U"
+                var bestQValue = Int.MIN_VALUE
+
+                for (action in actions) {
+                    val qValue = qLookup(state, action)
+                    if (qValue > bestQValue) {
+                        bestQValue = qValue
+                        bestAction = action
+                    }
+                }
+
+                policy[row][col] = bestAction
             }
-//            val thisSum = sum(qTable[state])
-//            thisPolicy[state][0] = qTable[state][0] / thisSum
-//            thisPolicy[state][1] = qTable[state][1] / thisSum
-//            thisPolicy[state][2] = qTable[state][2] / thisSum
-//            thisPolicy[state][3] = qTable[state][3] / thisSum
         }
-        qLearningPolicy = thisPolicy
+        return policy
+    }
+
+    fun printPolicy(policy: MutableList<MutableList<String>>) {
+        println("Learned policy:")
+        for (row in policy) {
+            for (action in row) {
+                print("$action\t")
+            }
+            println()
+        }
     }
 
     /**
      *
      */
-    fun policyValueFunction(policy: MutableList<String>): MutableList<Double> {
-        var valueTable: MutableList<Double> = MutableList(worldDim*worldDim) { 0.0 }
+    fun policyValueFunction(): MutableList<Double> {
+        var valueTable: MutableList<Double> = MutableList(worldDim * worldDim) { 0.0 }
 
         val threshold = 1e-10
 
-        while (true) {
-            var changedValue = false
-            for (state in 0..worldDim*worldDim - 1) {
-                var value = 0.0
+        var changedValue: Boolean
+        do {
+            changedValue = false
+            for (state in 0 until worldDim * worldDim) {
+                var newValue = 0.0
 
                 val row = state / worldDim
                 val col = state % worldDim
@@ -308,22 +309,26 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
                         when (action) {
                             "U" -> newRow--
                             "D" -> newRow++
-                            "L"-> newCol--
+                            "L" -> newCol--
                             "R" -> newCol++
                         }
-                        val newIdx = row*worldDim + col
-                        value = value + (alpha * (currReward + gamma * valueTable[newIdx]))
-                        changedValue = true
+                        val newIdx = newRow * worldDim + newCol
+                        val potentialValue = currReward + gamma * valueTable[newIdx]
+
+                        newValue = maxOf(newValue, potentialValue)
                     }
                 }
-                valueTable[state] = value
+
+                if (abs(valueTable[state] - newValue) > threshold) {
+                    valueTable[state] = newValue
+                    changedValue = true
+                }
             }
-            if (changedValue == false) {
-                break
-            }
-        }
+        } while (changedValue)
+
         return valueTable
     }
+
 
     /**
      *
@@ -331,7 +336,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
     fun getIterativePolicy(valueTable: MutableList<Double>): MutableList<String> {
         val policy = MutableList(worldDim*worldDim) { "U" }
         for (state in 0..worldDim*worldDim - 1) {
-            var maxAction = "U" // Defaults to up
+            var maxAction = "U"
             var maxValue = 0.0
 
             val row = state / worldDim
@@ -349,7 +354,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
                         "L" -> newCol--
                         "R" -> newCol++
                     }
-                    val newIdx = row * worldDim + col
+                    val newIdx = newRow * worldDim + newCol
                     val thisValue = alpha * (currReward + gamma * valueTable[newIdx])
 
                     if (thisValue > maxValue) {
@@ -367,18 +372,35 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         var originalPolicy = MutableList(worldDim*worldDim) { "U" }
         val iterations = 50
 
-        for (i in 0..49) {
-            val thisValueFunction = policyValueFunction(originalPolicy)
+        for (i in 0 until 50) {
+            val thisValueFunction = policyValueFunction()
             val thisPolicy = getIterativePolicy(thisValueFunction)
 
             if (thisPolicy == originalPolicy) {
-                println("Found convergance at step ${i+1}")
+                println("Found convergence at step ${i+1}")
                 break
             }
             originalPolicy = thisPolicy
         }
         iterativePolicy = originalPolicy
     }
+
+    fun printIterativePolicy() {
+        println("Iterative policy:")
+        var prevRow = 0
+        for (idx in 0..<worldDim*worldDim) {
+            val row = idx / worldDim
+            if (row != prevRow) {
+                println()
+                prevRow = row
+            }
+            print("${iterativePolicy[idx]}   ")
+        }
+    }
+
+
+
+
 }
 
 fun main() {
@@ -386,10 +408,11 @@ fun main() {
     mouseAgent.updateState(0, 1, "Salad")
     mouseAgent.updateState(2, 1, "Cheese")
     mouseAgent.updateState(2, 2, "Cookie")
-//    mouseAgent.trainQPolicy(1000, 50)
+    mouseAgent.trainQPolicy(1000, 50)
+    println(mouseAgent.getQTable())
+    mouseAgent.printWorld()
+    val p = mouseAgent.extractPolicy()
+    mouseAgent.printPolicy(p)
     mouseAgent.policyIterate()
-//    println(mouseAgent.getQTable())
     println(mouseAgent.printIterativePolicy())
 }
-
-
