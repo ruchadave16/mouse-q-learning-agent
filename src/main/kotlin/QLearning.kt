@@ -66,7 +66,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         for (idx in 0..worldDim*worldDim - 1) {
             val row = idx / worldDim
             val col = idx % worldDim
-            
+
             if (row != prevRow) {
                 println()
                 prevRow = row
@@ -267,7 +267,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
 //        val thisPolicy: MutableList<MutableList<Int>> = MutableList(worldDim*worldDim) { MutableList(actionSpace) { 0 } }
         val thisPolicy: MutableList<String> = MutableList(worldDim*worldDim) { "U" }
         for (state in 0..worldDim*worldDim - 1) {
-            val maxQValue = max(qTable[state])
+            val maxQValue: Int = qTable[state].max()!!
             when (maxQValue) {
                 qTable[state][0] -> thisPolicy[state] = "U"
                 qTable[state][1] -> thisPolicy[state] = "D"
