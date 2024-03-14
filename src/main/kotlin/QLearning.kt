@@ -127,15 +127,9 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
      *
      * @return Int representing the reward at the new position after given action is taken
      */
-    fun computeReward(state: WorldState, action: String): Int {
+    fun computeReward(state: WorldState): Int {
         val stateCopy = WorldState(state.row, state.col, state.type)
-        when (action) {
-            "U" -> stateCopy.row--
-            "D" -> stateCopy.row++
-            "L" -> stateCopy.col--
-            "R" -> stateCopy.col++
-        }
-        val nextStateType: String = world[state.row][state.col]
+        val nextStateType: String = world[stateCopy.row][stateCopy.col]
         return rewards[nextStateType]!!
     }
 
@@ -150,8 +144,8 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
         val originalState = agentState.copy()
         val currentQ = qLookup(agentState, action)
         println("Moving agent $action from ${agentState.row}, ${agentState.col}")
+        val currReward = computeReward(agentState)
         updateAgentState(action)
-        val currReward = computeReward(agentState, action)
         val qMaximum = qMax()
         println("Now agent is in ${agentState.row}, ${agentState.col}")
         val newQ = currentQ + alpha * (currReward + gamma * qMaximum - currentQ)
@@ -226,7 +220,11 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
                 }
                 qFunction(action)
             } else {
-                action = qMaxAction()
+                yetToBeValid = true
+                while (yetToBeValid) {
+                    action = qMaxAction()
+                    yetToBeValid = isInvalidAction(agentState, action)
+                }
                 qFunction(action)
             }
         }
@@ -303,7 +301,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
 
                 for (action in listOf("U", "D", "L", "R")) {
                     if (!isInvalidAction(worldState, action)) {
-                        val currReward = computeReward(worldState, action)
+                        val currReward = computeReward(worldState)
                         var newRow = row
                         var newCol = col
                         when (action) {
@@ -345,7 +343,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
 
             for (action in listOf("U", "D", "L", "R")) {
                 if (!isInvalidAction(worldState, action)) {
-                    val currReward = computeReward(worldState, action)
+                    val currReward = computeReward(worldState)
                     var newRow = row
                     var newCol = col
                     when (action) {
@@ -397,6 +395,7 @@ class QLearning(actionSpace: Int, private var worldDim: Int, defaultValue: Int, 
             print("${iterativePolicy[idx]}   ")
         }
     }
+
 }
 
 fun main() {
