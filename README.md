@@ -7,7 +7,7 @@ While machine learning tasks such as classification or regression are just one t
 
 These problems can be solved by value-based or policy-based methods. Value-based methods try to estimate the value of certain states and actions in the environment. In Q-Learning, this is done by learning a Q-Value for each state and action and then a policy is extracted from the Q-Table storing these Q-Values (generally choosing the maximum of the Q-Values tangent to the current state). Policy-based methods directly learn a policy instead of estimating values for each state/action. 
 
-In this project, we create a sample 
+In this project, we create a sample environment that our agent, a mouse, can travel through (U, D, L, R). There are rewards and punishments (cheese and salad) placed along the path, along with the final goal of getting a cookie. We implement both a value based and a policy based method to create policies for the mouse to navigate the grid. The final results are provided in the main function, which shows how both of our methods result in the same "ideal" policy being chosen.
 
 ## Try it yourself!
 ### Installation Instructions
